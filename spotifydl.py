@@ -3,6 +3,11 @@
 # Download an entire Spotify playlist using YouTube mp3s
 # https://stackoverflow.com/questions/27473526/download-only-audio-from-youtube-video-using-youtube-dl-in-python-script
 
+# TODO:
+# - Exceptions for having no internet connection
+# - Put all downloaded music into a directory called 'music'
+# - Add support for adding a spotify playlist and getting a list of
+# songs from the playlist
 
 # pytube module downloading getting streams of youtube
 
