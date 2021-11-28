@@ -6,17 +6,17 @@
 
 # pytube module downloading getting streams of youtube
 
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
 from youtubesearchpython import VideosSearch
 import youtube_dl
-import urllib.request
-import re
+import os
 
 
 # Download song using provided link
 def downloader(link):
     ydl_opts = {
         'format': 'bestaudio/best',
+        'outtmpl': '%(title)s.%(ext)s',
         'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
@@ -46,15 +46,21 @@ def getSongData(stripped_results):
     displaySongs(stripped_results)
     print("Enter the index of a song to download.")
     print("E.g. Enter '1' for Song 1.")
+    print("(Default: 1)")
     while True:
+        inp = input("Index of song: ")
         try:
-            inp = int(input("Index of song: "))
-            numSongs = len(stripped_results)
-            if inp == 0 or inp > numSongs:
-                print("Please enter a valid index number.\nTry again...")
-            else:
-                songData = stripped_results[inp-1]
+            if inp == "":  # Default = 1 so 0th song
+                songData = stripped_results[0]
                 return songData
+            else:
+                inp = int(inp)
+                numSongs = len(stripped_results)
+                if inp == 0 or inp > numSongs:
+                    print("Please enter a valid index number.\nTry again...")
+                else:  # Valid
+                    songData = stripped_results[inp-1]
+                    return songData
         except ValueError:
             print("Please enter a valid index, must be a number.\nTry again...")
 
@@ -92,13 +98,20 @@ def getUserInput():
             print("You need to enter a song title.\n Try again...")
         else:  # Validation for search_limit
             print("Enter the number of songs to show from YouTube: ")
-            print("E.g. '5' will show only the first 5 songs from YouTube.")
+            print("E.g. Entering '3' will only show the first 3 songs from YouTube.")
+            print("(Default: 5)")
             while True:
+                search_limit = input("Number of songs to show: ")
                 try:
-                    search_limit = int(input("Number of songs to show: "))
-                    if search_limit == 0 or search_limit > 20: print("Enter a search result value between 1 and 20.\nTry again...")
-                    else:  # Valid
+                    if search_limit == "":
+                        search_limit = 5
                         return song_name, search_limit
+                    else:
+                        search_limit = int(search_limit)
+                        if search_limit == 0 or search_limit > 20:
+                            print("Enter a search result value between 1 and 20.\nTry again...")
+                        else:  # Valid
+                            return song_name, search_limit
                 except ValueError:
                     print("Please input a valid number of search results to show.\nTry again...")
 
