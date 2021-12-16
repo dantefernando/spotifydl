@@ -25,9 +25,11 @@
 
 # from __future__ import unicode_literals
 from youtubesearchpython import VideosSearch
+from spotipy.oauth2 import SpotifyClientCredientials
+from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
 import youtube_dl
 import os
-
+import spotify
 
 # Return True if the song exists in music/ , otherwise return False
 def songExists(title, files):
