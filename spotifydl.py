@@ -10,6 +10,9 @@
 # TODO High Priority
 # - Add support for adding a spotify playlist and getting a list of
 # songs from the playlist
+#       + make it so that the user can input an https link of their playlist
+# - Fix: -> Special characters when spotify playlist desc.
+#        -> Convert durations from ms for songs and total playlist runtime
 # - Make folders inside music/ with time and date for different sessions
 
 # TODO Medium Priority
@@ -22,14 +25,78 @@
 # - Delete partly downloaded music
 
 
-
 # from __future__ import unicode_literals
-from youtubesearchpython import VideosSearch
-from spotipy.oauth2 import SpotifyClientCredientials
-from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
+import datetime
 import youtube_dl
 import os
-import spotify
+import spotipy
+from math import floor
+from youtubesearchpython import VideosSearch
+from spotipy.oauth2 import SpotifyClientCredentials
+from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
+
+
+class SpotifyData:
+
+    def __init__(self, clientID, clientSecret):
+        """
+        Constructor; Set authentication variables for Spotipy
+        and create the spotipy instance for the rest
+        of the SpotifyData class to use
+        """
+
+        self.__clientID = clientID
+        self.__clientSecret = clientSecret
+        self.__sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=self.__clientID,
+                                                                        client_secret=self.__clientSecret))
+
+    def __convertMilliseconds(self, playTime):
+        """
+        Convert milliseconds to a human readable
+        format e.g. hours:minutes for display
+        """
+
+        d = datetime.timedelta(milliseconds=playTime)
+
+        return d
+
+    def getPlaylist(self, playlist_id):
+        """
+        Returns a list of dictionaries of songs with metadata
+        and information about the playlist as well
+        """
+
+        # Requires: 
+        # playlistData {Title,owner,Description, num of songs, total_playtime} TODO (need to append)
+        # songs : {Title,Artists,followers,Duration_ms} TODO (need to append)
+
+        # Get all data about spotify playlist
+        results = self.__sp.playlist(playlist_id=playlist_id)
+
+        songs = []
+        playTime = 0
+        for index, song in enumerate(results['tracks']['items'], start=1):  # Iterate through each song's data
+            data = {}
+            data['index'] = index
+            data['title'] = song['track']['name']
+            data['duration'] = self.__convertMilliseconds(song['track']['duration_ms'])
+            playTime += song['track']['duration_ms']
+            data['artists'] = [artist['name'] for artist in song['track']['artists']]
+            songs.append(data)
+
+        playlistData = {}
+        playlistData['name'] = results['name']
+        playlistData['owner'] = results['owner']['display_name']
+        playlistData['description'] = results['description']
+        playlistData['numSongs'] = results['tracks']['total']
+        playTimeFormatted = self.__convertMilliseconds(playTime)
+        playlistData['playTime'] = playTimeFormatted
+
+
+        playlist = dict(playlistData = playlistData, songs = songs)
+
+        return playlist
+
 
 # Return True if the song exists in music/ , otherwise return False
 def songExists(title, files):
@@ -194,14 +261,23 @@ def getUserInput():
 
 
 def main():
-    try:
-        while True:  # Loop to keep downloading songs
-            song_name , search_limit = getUserInput()
-            stripped_results = getResults(song_name, search_limit)
-            songData = getSongData(stripped_results)
-            downloader(songData)
-    except KeyboardInterrupt:  # User hits ctrl-c on keyboard 
-        print("\n\nExiting program...")
+
+    spotify = SpotifyData(SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET)
+    playlist_id = input("playlist id here: ")
+    playlist = spotify.getPlaylist(playlist_id)
+
+    for song in playlist['songs']:  # print names
+        print(song['title'], song['duration'])
+    print(playlist['playlistData']['playTime'])
+
+    # try:
+    #     while True:  # Loop to keep downloading songs
+    #         song_name , search_limit = getUserInput()
+    #         stripped_results = getResults(song_name, search_limit)
+    #         songData = getSongData(stripped_results)
+    #         downloader(songData)
+    # except KeyboardInterrupt:  # User hits ctrl-c on keyboard 
+    #     print("\n\nExiting program...")
 
 
 if __name__ == "__main__":

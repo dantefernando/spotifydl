@@ -9,6 +9,7 @@ Download an entire Spotify playlist using YouTube mp3s
 git clone https://github.com/dantefernando/spotifydl
 pip install youtube-search-python
 pip install youtube-dl
+pip install spotify
 ```
 
 ## Usage
