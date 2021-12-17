@@ -10,9 +10,8 @@
 # TODO High Priority
 # - Add support for adding a spotify playlist and getting a list of
 # songs from the playlist
-#       + make it so that the user can input an https link of their playlist
+# - Fix: -> only 100 results being returned when requesting playlist data
 # - Fix: -> Special characters when spotify playlist desc.
-#        -> Convert durations from ms for songs and total playlist runtime
 # - Make folders inside music/ with time and date for different sessions
 
 # TODO Medium Priority
@@ -26,21 +25,23 @@
 
 
 # from __future__ import unicode_literals
-import datetime
+# import datetime
 import youtube_dl
 import os
 import spotipy
-from math import floor
 from youtubesearchpython import VideosSearch
 from spotipy.oauth2 import SpotifyClientCredentials
 from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
 
 
 class SpotifyData:
+    """
+    Return data from spotify using various methods
+    """
 
     def __init__(self, clientID, clientSecret):
         """
-        Constructor; Set authentication variables for Spotipy
+        Constructor: Set authentication variables for Spotipy
         and create the spotipy instance for the rest
         of the SpotifyData class to use
         """
@@ -50,64 +51,110 @@ class SpotifyData:
         self.__sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=self.__clientID,
                                                                         client_secret=self.__clientSecret))
 
-    def __convertMilliseconds(self, playTime):
+    def __convertMilliseconds(self, milliseconds):
         """
         Convert milliseconds to a human readable
         format e.g. hours:minutes for display
         """
 
-        d = datetime.timedelta(milliseconds=playTime)
+        milliseconds = int(milliseconds)
+        seconds=(milliseconds/1000)%60
+        seconds = int(seconds)
+        minutes=(milliseconds/(1000*60))%60
+        minutes = int(minutes)
+        hours=(milliseconds/(1000*60*60))%24
 
-        return d
+        if len(str(seconds)) == 1:
+            seconds = f"0{seconds}"
+
+        if int(hours) > 0:
+            durationFormatted = f"{int(hours)}:{int(minutes)}:{seconds}"
+        else:
+            durationFormatted = f"{int(minutes)}:{seconds}"
+
+        return durationFormatted
+
 
     def getPlaylist(self, playlist_id):
         """
         Returns a list of dictionaries of songs with metadata
         and information about the playlist as well
+
+        Bugs: a limit of only 100 songs from playlist are returned.
         """
 
         # Requires: 
         # playlistData {Title,owner,Description, num of songs, total_playtime} TODO (need to append)
         # songs : {Title,Artists,followers,Duration_ms} TODO (need to append)
 
-        # Get all data about spotify playlist
-        results = self.__sp.playlist(playlist_id=playlist_id)
+        # Get all song data about spotify playlist
+        results = self.__sp.playlist_tracks(playlist_id=playlist_id, limit=100)
 
+
+        # Collect data about each song and store it in the songs list
         songs = []
-        playTime = 0
-        for index, song in enumerate(results['tracks']['items'], start=1):  # Iterate through each song's data
+        duration = 0  # Total duration of the playlist
+        for index, song in enumerate(results['items'], start=1):  # Iterate through each song's data
             data = {}
             data['index'] = index
             data['title'] = song['track']['name']
             data['duration'] = self.__convertMilliseconds(song['track']['duration_ms'])
-            playTime += song['track']['duration_ms']
+            duration += song['track']['duration_ms']
             data['artists'] = [artist['name'] for artist in song['track']['artists']]
             songs.append(data)
 
+        results = self.__sp.playlist(playlist_id=playlist_id)
+
+        # Collect data about the playlist and store it in the playlistData dict
         playlistData = {}
         playlistData['name'] = results['name']
         playlistData['owner'] = results['owner']['display_name']
         playlistData['description'] = results['description']
         playlistData['numSongs'] = results['tracks']['total']
-        playTimeFormatted = self.__convertMilliseconds(playTime)
-        playlistData['playTime'] = playTimeFormatted
-
+        durationFormatted = self.__convertMilliseconds(duration)
+        playlistData['duration'] = durationFormatted
 
         playlist = dict(playlistData = playlistData, songs = songs)
-
         return playlist
 
 
-# Return True if the song exists in music/ , otherwise return False
+    def getPlaylistID(self):
+        """
+        Asks the user to enter a https link of the
+        spotify playlist and the method will return
+        the spotify playlist ID required to use with
+        other methods involving fetching data of a playlist.
+        """
+
+        # https://open.spotify.com/playlist/6TqSxxmrNlrGQblCLlDj9S?si=94523af82e99433f
+        link = input("Enter the link of the spotify playlist you want to download: ").split("/")
+
+        playlistID = ""
+        for letter in link[4]:
+            if letter != "?":
+                playlistID += letter
+            else:
+                break
+
+        return playlistID
+
+
 def songExists(title, files):
+    """
+    Return True if the song exists in music/ , otherwise return False
+    """
+
     if f"{title}.mp3" in files:  # File is already downloaded
         return True
     else:  # File doesn't exist / hasn't been downloaded yet
         return False
 
 
-# Make the music/ directory if it doesn't already exist
 def makeMusicDir():
+    """
+    Make the music/ directory if it doesn't already exist
+    """
+
     cwd = os.getcwd()  # Get cwd
     path = os.path.join(cwd, "music")  # Path object
 
@@ -121,9 +168,11 @@ def makeMusicDir():
     return path, files
 
 
-# Download song using provided link
-# Kwargs: redownload=BOOL
 def downloader(songData, **kwargs):
+    """
+    Download song using provided link
+    Kwargs: redownload=BOOL
+    """
 
     # Sets values using kwargs to determine
     # whether or not to redownload the song:
@@ -166,10 +215,13 @@ def downloader(songData, **kwargs):
                 print("Please enter a valid input, try again...\n")
 
 
-# Display the songs from the YouTube search
-# results in a readable format with title,
-# channel, duration and views
 def displaySongs(stripped_results):
+    """
+    Display the songs from the YouTube search
+    results in a readable format with title,
+    channel, duration and views
+    """
+
     print("\n")
     for index, song in enumerate(stripped_results):
         title = song["title"]
@@ -182,9 +234,11 @@ def displaySongs(stripped_results):
         print(f"Views: {views}\n")
 
 
-# Get link of song to download chosen by
-# the user
 def getSongData(stripped_results):
+    """
+    Get link of song to download chosen by the user
+    """
+
     displaySongs(stripped_results)
     print("Enter the index of a song to download.")
     print("E.g. Enter '1' for Song 1.")
@@ -209,9 +263,11 @@ def getSongData(stripped_results):
             print("Please enter a valid index, must be an integer.\nTry again...\n")
 
 
-# Get YouTube Search Results on YouTube
-# Based off of user's search query
 def getResults(song_name, search_limit):
+    """
+    Get YouTube Search Results on YouTube
+    Based off of user's search query
+    """
 
     # Get results from YouTube
     results = VideosSearch(song_name, limit=search_limit).result()["result"]
@@ -232,8 +288,11 @@ def getResults(song_name, search_limit):
     return stripped_results
 
 
-# Get song from user and limit of videos to search on YouTube
 def getUserInput():
+    """
+    Get song from user and limit of videos to search on YouTube
+    """
+
     while True:
         song_name = input("Enter song name (YouTube): ").replace(" ", "+")
 
@@ -261,14 +320,17 @@ def getUserInput():
 
 
 def main():
+    """
+    Main (WIP)
+    """
 
     spotify = SpotifyData(SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET)
-    playlist_id = input("playlist id here: ")
+    playlist_id = spotify.getPlaylistID()
     playlist = spotify.getPlaylist(playlist_id)
 
     for song in playlist['songs']:  # print names
         print(song['title'], song['duration'])
-    print(playlist['playlistData']['playTime'])
+    print(playlist['playlistData']['duration'])
 
     # try:
     #     while True:  # Loop to keep downloading songs
