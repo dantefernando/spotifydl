@@ -1,6 +1,9 @@
-# spotifydl (WIP)
+# spotifydl
 Download an entire Spotify playlist using YouTube mp3s
 
+## Git Branch Info
+- The *more or less* stable builds of the program will be on pushed to the **main** branch.
+- All my **unstable builds** will be pushed to the **dev** branch.
 
 ## Installation
 
