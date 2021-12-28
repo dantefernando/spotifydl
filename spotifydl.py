@@ -185,13 +185,6 @@ class SpotifyData:
             client_secret=self.__clientSecret
         )
 
-        # credential_manager = SpotifyOAuth(
-        #     client_id=self.__clientID,
-        #     client_secret=self.__clientSecret,
-        #     redirect_uri="http://127.0.0.1:8080/",
-        #     scope="user-library-read"
-        # )
-
         self.__spotifyClient = Spotify(auth_manager=credential_manager)
 
 
@@ -264,9 +257,7 @@ class SpotifyData:
 
         """
 
-        # Requires: 
-        # playlistData {Title,owner,Description, num of songs, total_playtime} TODO (need to append)
-        # songs : {Title,Artists,followers,Duration_ms} TODO (need to append)
+        # [[playlistData:{Title,owner,Description, num of songs, total_playtime}], [songs:{Title,Artists,followers,Duration_ms}]]
 
         # Get all song data about spotify playlist
         playlist_response = self.__spotifyClient.playlist_tracks(playlist_id=playlist_id, limit=100)
@@ -331,18 +322,7 @@ class SpotifyData:
         Next Steps: Need to add validation for user
         """
 
-        # https://open.spotify.com/playlist/6TqSxxmrNlrGQblCLlDj9S?si=94523af82e99433f
-        # link = input("Enter the link of the spotify playlist you want to download: ").split("/")
-
         link = input("Enter the link of the spotify playlist you want to download: ")
-
-        # playlistID = ""
-        # for letter in link[4]:
-        #     if letter != "?":
-        #         playlistID += letter
-        #     else:
-        #         break
-
         return link
 
 
