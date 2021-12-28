@@ -6,6 +6,7 @@
 # - pytube module downloading getting streams of youtube
 
 # TODO High Priority
+# - Add functionality to download metadata for each song?
 
 # TODO Medium Priority
 # - Fix: -> Special characters when spotify playlist desc.
