@@ -6,10 +6,9 @@
 # - pytube module downloading getting streams of youtube
 
 # TODO High Priority
-# - Fix: -> Special characters when spotify playlist desc.
-# - Make folders inside music/ with time and date for different sessions
 
 # TODO Medium Priority
+# - Fix: -> Special characters when spotify playlist desc.
 # - Add a settings menu to choose from different defaults
 # when downloading music. E.g. default to choose to download song
 # with most views instead of the first index
@@ -22,11 +21,15 @@
 import youtube_dl
 import os
 import json
-from threading import Thread
+
 from spotipy import Spotify
-from youtubesearchpython import VideosSearch
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+from youtubesearchpython import VideosSearch
+from threading import Thread
+
 from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
+from argumentsHandler import parse_arguments
+
 
 
 class Settings:
@@ -217,11 +220,16 @@ class SpotifyData:
 
         while True:
             inp = input("Your choice: ").lower()
-            if inp == "y" or "yes" or "":
+
+            # User confirmed that it's the correct playlist
+            if inp in ['y', 'yes', '']:
                 return True
-            elif inp == "n" or "no":
+
+            # User confirmed that it's the incorrect playlist
+            elif inp in ['n', 'no']:
                 return False
-            else:
+
+            else:  # User entered invalid option
                 print("Please enter a valid option, try again.")
 
 
@@ -324,16 +332,18 @@ class SpotifyData:
         """
 
         # https://open.spotify.com/playlist/6TqSxxmrNlrGQblCLlDj9S?si=94523af82e99433f
-        link = input("Enter the link of the spotify playlist you want to download: ").split("/")
+        # link = input("Enter the link of the spotify playlist you want to download: ").split("/")
 
-        playlistID = ""
-        for letter in link[4]:
-            if letter != "?":
-                playlistID += letter
-            else:
-                break
+        link = input("Enter the link of the spotify playlist you want to download: ")
 
-        return playlistID
+        # playlistID = ""
+        # for letter in link[4]:
+        #     if letter != "?":
+        #         playlistID += letter
+        #     else:
+        #         break
+
+        return link
 
 
 def songExists(title, files):
@@ -367,7 +377,7 @@ def makeMusicDir(spotifyData):
     return path, files
 
 
-def downloader(youtubeData, spotifyData, settings, playlist, **kwargs):
+def downloader(youtubeData, spotifyData, settings, playlist, args, **kwargs):
     """
     Download song using provided link
     Kwargs: redownload=BOOL
@@ -404,7 +414,7 @@ def downloader(youtubeData, spotifyData, settings, playlist, **kwargs):
     else:  # Song exists in the folder
         print(f"\"{title}\" has been downloaded already.")
         while True:  # Loop until valid input has been receieved
-            if settings.autoselectStatus():  # Autoselect is set to true
+            if settings.autoselectStatus() or args.auto_select:  # Autoselect is set to true
                 break
             else:
                 inp = input("(Default: Skip)\n(S)kip or (R)edownload song: ").lower()
@@ -413,7 +423,7 @@ def downloader(youtubeData, spotifyData, settings, playlist, **kwargs):
                     print("Song skipped!!\n\n")
                     break
                 elif inp == "r":  # User chose to redownload the song
-                    downloader(youtubeData, spotifyData, settings, playlist, redownload=True)
+                    downloader(youtubeData, spotifyData, settings, playlist, args, redownload=True)
                     break
                 else:  # Invalid input
                     print("Please enter a valid input, try again...\n")
@@ -438,12 +448,12 @@ def displaySongs(stripped_results):
         print(f"Views: {views}\n")
 
 
-def getSongData(stripped_results, settings):
+def getSongData(stripped_results, settings, args):
     """
     Get link of song to download chosen by the user
     """
 
-    if settings.autoselectStatus():  # Autoselect is set to true
+    if settings.autoselectStatus() or args.auto_select:  # Autoselect is set to true
         return stripped_results[0]
     else:  # Auto select is disabled
         displaySongs(stripped_results)
@@ -525,7 +535,7 @@ def getResults(song_name, search_limit):
 #                 except ValueError:
 #                     print("Please input a valid number of search results to show.\nTry again...\n")
 
-def downloadSongs(settings):
+def downloadSongs(settings, args):
     """
     Sequence of instructions to download the songs:
 
@@ -538,22 +548,31 @@ def downloadSongs(settings):
     print("PRESS CTRL-C TO EXIT TO MAIN MENU")
 
     try:
+        # Initialize Spotify API
         spotify = SpotifyData(SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET)
 
-        # Validate that the user has entered the correct playlist
-        while True:
-            playlist_id = spotify.getPlaylistID()  # Get the playlist link
+        if args.playlistLink is None:  # User didn't parse a link as an argument
+
+            # Validate that the user has entered the correct playlist
+            while True:
+                playlist_id = spotify.getPlaylistID()  # Get the playlist link from the user
+                playlist = spotify.getPlaylist(playlist_id)  # get the playlist response from API
+
+                # Ask user if the playlist is correct
+                if spotify.isUserPlaylist(playlist) == True:
+                    break
+
+        else:  # user parsed in link as argument
+            playlist_id = args.playlistLink
             playlist = spotify.getPlaylist(playlist_id)  # get the playlist response from API
 
-            # Ask user if the playlist is correct
-            if spotify.isUserPlaylist(playlist) == True:
-                break
+
 
 
         threads = []
 
         numSongs = len(playlist['songs'])
-        numThreads = 20  # 10 concurrent threads running
+        numThreads = 20  # 20 concurrent threads running
         loops = numSongs // numThreads
         for i in range(0, numSongs-numThreads, numThreads):  # Iterates through each song
 
@@ -562,9 +581,9 @@ def downloadSongs(settings):
                 songTitle = f"{song['title']} {song['artists']}"  # Formats title used to search on yt
 
                 youtubeResults = getResults(songTitle, 5)  # Returns search results from YouTube
-                songData = getSongData(youtubeResults, settings)  # Returns the song data from the YouTube search
+                songData = getSongData(youtubeResults, settings, args)  # Returns the song data from the YouTube search
 
-                t = Thread(target=downloader, args=(songData, song, settings, playlist))
+                t = Thread(target=downloader, args=(songData, song, settings, playlist, args))
                 threads.append(t)
                 print(f"Appended thread #{y}")
 
@@ -581,9 +600,9 @@ def downloadSongs(settings):
             songTitle = f"{song['title']} {song['artists']}"  # Formats title used to search on yt
 
             youtubeResults = getResults(songTitle, 5)  # Returns search results from YouTube
-            songData = getSongData(youtubeResults, settings)  # Returns the song data from the YouTube search
+            songData = getSongData(youtubeResults, settings, args)  # Returns the song data from the YouTube search
 
-            t = Thread(target=downloader, args=(songData, song, settings, playlist))
+            t = Thread(target=downloader, args=(songData, song, settings, playlist, args))
             threads.append(t)
             print(f"Appended thread #{b}")
 
@@ -598,7 +617,7 @@ def downloadSongs(settings):
         print("\n\nCancelling Downloads...")
 
 
-def main_menu(settings):
+def main_menu(settings, args):
     """
     Interactive main menu w/ options for the user
 
@@ -619,7 +638,11 @@ def main_menu(settings):
         for key in sorted(menu.keys()):
             print(key + menu[key][0])
 
-        status = settings.autoselectStatus()
+        if args.auto_select is not None:
+            status = args.auto_select
+        else:
+            status = settings.autoselectStatus()
+
         print(f"\nMisc Settings: Autoselect={status}")
 
         while True:  # Loop until a valid index is received
@@ -636,7 +659,7 @@ def main_menu(settings):
         print("-" * 30)
 
         if index == 1:
-            menu[str(index)][1](settings)  # Select the menu option
+            menu[str(index)][1](settings, args)  # Select the menu option
         else:
             menu[str(index)][1]()  # Select the menu option
 
@@ -647,7 +670,14 @@ def main():
     """
 
     settings = Settings()  # Initialize settings
-    main_menu(settings)  # Enter the interactive main menu
+
+    args = parse_arguments()
+
+    if args.playlistLink is not None:  # User parsed playlist link as an arg
+        downloadSongs(settings, args)
+
+    else:  # User didn't parse any positional link arguments
+        main_menu(settings, args)  # Enter the interactive main menu
 
 
 if __name__ == "__main__":
