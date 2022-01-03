@@ -1,28 +1,26 @@
 # spotifydl
 Download an entire Spotify playlist using YouTube mp3s
 
-## Git Branch Info
-- The *more or less* stable builds of the program will be on pushed to the **main** branch.
-- All my **unstable builds** will be pushed to the **dev** branch.
 
-## Installation
+## Getting Started
+
+### Installation
 
 - Clone the repo & install dependencies w/ pip 
 ```
 git clone https://github.com/dantefernando/spotifydl
-pip install youtube-search-python
-pip install youtube-dl
-pip install spotify
+pip install -r requirements.txt
 ```
 
-## Usage
 
-- cd into the spotifydl/ directory
+### Usage
+
+- Run `spotifydl.py` with the `-h` flag for help and more options
 ```
-cd spotifydl/
+python spotifydl.py -h
 ```
 
-- Run `spotifydl.py` to start the program
+- E.g. Downloading a playlist with auto-select (Recommended)
 ```
-python spotifydl.py
+python spotifydl.py -a https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
 ```
