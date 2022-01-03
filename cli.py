@@ -13,7 +13,11 @@ def parse_arguments():
     return arguments called with the program
     """
 
-    parser = ArgumentParser(description=HELP_NOTICE)
+    parser = ArgumentParser(
+        prog="spotifydl",
+        description=HELP_NOTICE
+    )
+
 
     parser.add_argument(
         "playlistLink",

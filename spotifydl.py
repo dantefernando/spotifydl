@@ -29,7 +29,7 @@ from youtubesearchpython import VideosSearch
 from threading import Thread
 
 from secrets import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET
-from argumentsHandler import parse_arguments
+from cli import parse_arguments
 
 
 
