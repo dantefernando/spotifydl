@@ -21,7 +21,7 @@ def main_menu(settings, args):
         for key in sorted(menu.keys()):
             print(key + menu[key][0])
 
-        if args.auto_select is not None:
+        if args.auto_select:  # User used --auto-select flag
             status = args.auto_select
         else:
             status = settings.autoselectStatus()

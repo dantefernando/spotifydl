@@ -128,25 +128,30 @@ def downloadSongs(settings, args):
         numSongs = len(playlist['songs'])
         numThreads = 20  # 20 concurrent threads running
         loops = numSongs // numThreads
-        for i in range(0, numSongs-numThreads, numThreads):  # Iterates through each song
 
-            for y in range(i, i+numThreads):
-                song = playlist['songs'][y]  # Selects song
-                songTitle = f"{song['title']} {song['artists']}"  # Formats title used to search on yt
+        if numSongs >= numThreads:  # Number of songs is greater than number of threads
+            for i in range(0, numSongs-numThreads, numThreads):  # Iterates through each song
 
-                youtubeResults = getResults(songTitle, 5)  # Returns search results from YouTube
-                songData = getSongData(youtubeResults, settings, args)  # Returns the song data from the YouTube search
+                for y in range(i, i+numThreads):
+                    song = playlist['songs'][y]  # Selects song
+                    songTitle = f"{song['title']} {song['artists']}"  # Formats title used to search on yt
 
-                t = Thread(target=downloader, args=(songData, song, settings, playlist, args))
-                threads.append(t)
-                print(f"Appended thread #{y}")
+                    youtubeResults = getResults(songTitle, 5)  # Returns search results from YouTube
+                    songData = getSongData(youtubeResults, settings, args)  # Returns the song data from the YouTube search
 
-            for x in range(i, i+numThreads):
-                threads[x].start()
-                print(f"Started thread #{x}")
+                    t = Thread(target=downloader, args=(songData, song, settings, playlist, args))
+                    threads.append(t)
+                    print(f"Appended thread #{y}")
 
-            for x in range(i, i+numThreads):
-                threads[x].join()
+                for x in range(i, i+numThreads):
+                    threads[x].start()
+                    print(f"Started thread #{x}")
+
+                for x in range(i, i+numThreads):
+                    threads[x].join()
+
+        else:  # Number of songs is less than number of threads
+            i = 0 - numThreads
 
         for b in range(i+numThreads, numSongs):  # Iterates through each song
 

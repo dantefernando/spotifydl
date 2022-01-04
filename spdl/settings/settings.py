@@ -25,12 +25,12 @@ class Settings:
 
         try:  # Settings file already exists; read it
 
-            with open("../../settings.json", "r") as json_file:
+            with open("settings.json", "r") as json_file:
                 settings = json.load(json_file)  # Read json from file
 
         except FileNotFoundError:  # Settings file doesn't exist; create it
 
-            with open("../../settings.json", "w") as json_file:
+            with open("settings.json", "w") as json_file:
                 json.dump(defaultSettings, json_file)  # Write dict to to json file
             settings = defaultSettings
 
@@ -114,7 +114,7 @@ class Settings:
             self.__settings['autoselect'] = "false"  # Change status to false
 
         # Write dict to to json file
-        with open("../../settings.json", "w") as json_file:
+        with open("settings.json", "w") as json_file:
             json.dump(self.__settings, json_file)
 
 
