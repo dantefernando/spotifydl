@@ -1,5 +1,6 @@
 from spdl.downloaders import downloadSongs
 
+
 def main_menu(settings, args):
     """
     Interactive main menu w/ options for the user
